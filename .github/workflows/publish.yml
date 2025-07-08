@@ -1,0 +1,34 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    branches: [ master ] 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read     
+      packages: write 
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Bump version
+      uses: christian-draeger/increment-semantic-version@1.0.3
+      id: cv 
+      with:
+        version-fragment: 'patch'
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build and Pack
+      run: dotnet pack --configuration Release -p:PackageVersion=${{ steps.cv.outputs.version }}
+
+    - name: Push to GitHub Packages
+      run: dotnet nuget push "InnoShop.Contracts/bin/Release/*.nupkg" --api-key ${{ secrets.GITHUB_TOKEN }} --source "https://nuget.pkg.github.com/d1amond09/index.json"
